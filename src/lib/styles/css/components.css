@@ -1,0 +1,87 @@
+/* Checkbox */
+.ant-checkbox-group {
+  display: inline-block;
+}
+
+/* Descriptions */
+.ant-descriptions-row > th {
+  padding-bottom: 2px !important;
+}
+
+.ant-descriptions-header {
+  margin-bottom: 12px;
+}
+
+.ant-descriptions-item-label {
+  font-weight: 600 !important;
+  color: #0000 !important;
+}
+
+/* Form */
+.ant-form-item-label label {
+  font-weight: 500;
+}
+
+.ant-form-item-explain-error {
+  color: red;
+}
+
+/* Menu */
+.ant-menu {
+  font-weight: 500;
+}
+
+.ant-menu-item-selected {
+  background-color: #f5f5f5 !important;
+}
+
+/* Tabs */
+.ant-tabs-nav {
+  margin-bottom: 16px !important;
+}
+
+.ant-tabs-card .ant-tabs-tab {
+  padding: 8.5px 16px !important;
+}
+
+/* Card */
+.ant-card {
+  margin-bottom: 20px;
+}
+
+/* Upload */
+.ant-upload-drag {
+  background: transparent !important;
+  border: 2px dashed #e6ebf1 !important;
+}
+
+.ant-upload-list-item-error {
+  border-color: #e6ebf1 !important;
+  color: #e6ebf1 !important;
+}
+
+/* Tag */
+.ant-tag {
+  font-weight: 500;
+  line-height: 25px;
+}
+
+/* Breadcrumb */
+.ant-breadcrumb-separator {
+  display: flex;
+  align-items: center;
+}
+
+.ant-breadcrumb {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.ant-breadcrumb li:last-child {
+  color: #654de4;
+}
+
+/* Footer */
+.ant-layout-footer {
+  padding: 0 0 20px 20px !important;
+}

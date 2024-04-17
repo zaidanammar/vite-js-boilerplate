@@ -1,0 +1,104 @@
+stages:
+  - build
+  - build-image-stage
+  - build-image-prod
+
+include:
+  - project: 'devops/gitlab-ci-templates'
+    file: 'k8s-docker-runner.yml'
+
+variables: &build_variables
+  DOCKER_REGISTRY: registry.infra.pvg.im
+  DOCKERFILE: Dockerfile
+  DOCKER_BUILD_CONTEXT: .
+  DOCKER_BUILD_OPTS: ''
+  DOCKER_BUILDKIT: 1
+  NAMESPACE: $CI_PROJECT_NAMESPACE
+  PROJECT_NAME: $CI_PROJECT_NAME
+  IMAGE_TAG: $CI_COMMIT_TAG
+  VITE_APP_NAME: $VITE_APP_NAME
+
+  # stage
+  VITE_API_URL: $VITE_API_URL
+
+  # prod
+  VITE_API_URL_PROD: $VITE_API_URL_PROD
+
+build:
+  stage: build
+  image: node:18-alpine
+  tags: ['pvg']
+  extends: .k8s_docker_runner
+  except: 
+    - tags
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@latest-8 --activate
+    - pnpm config set store-dir .pnpm-store
+  script:
+    - pnpm install
+    - pnpm run build
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+  artifacts:
+    paths:
+      - build/
+
+build_image_stage:
+  stage: build-image-stage
+  extends: .k8s_docker_runner
+  tags: ['pvg']
+  only:
+    - master
+  variables:
+    <<: *build_variables
+  script:
+    - |
+      docker build --progress=plain \
+        --build-arg GIT_REPO="$CI_PROJECT_URL" \
+        --build-arg GIT_COMMIT="$CI_COMMIT_SHORT_SHA" \
+        --build-arg GIT_DATE="$CI_COMMIT_TIMESTAMP" \
+        --build-arg IMG_NAME="$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME" \
+        --build-arg VITE_APP_NAME=$VITE_APP_NAME \
+        --build-arg VITE_API_URL=$VITE_API_URL \
+        --build-arg VITE_DEPLOY_CONTEXT="development" \
+        $DOCKER_BUILD_OPTS \
+        -t "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_SHORT_SHA" \
+        -t "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:latest" \
+        -f "./$DOCKERFILE" "$DOCKER_BUILD_CONTEXT"
+    - docker push "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_SHORT_SHA"
+    - docker push "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:latest"
+    - |
+      echo -e "\e[1;93mDocker image: $DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_SHORT_SHA"
+
+
+build_image_prod:
+  stage: build-image-prod
+  extends: .k8s_docker_runner
+  tags: ['pvg']
+  only:
+    - tags
+  variables:
+    <<: *build_variables
+  script:
+    - |
+      docker build --progress=plain \
+        --build-arg GIT_REPO="$CI_PROJECT_URL" \
+        --build-arg GIT_COMMIT="$CI_COMMIT_TAG" \
+        --build-arg GIT_DATE="$CI_COMMIT_TIMESTAMP" \
+        --build-arg IMG_NAME="$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME" \
+        --build-arg VITE_APP_NAME=$VITE_APP_NAME \
+        --build-arg VITE_API_URL=$VITE_API_URL_PROD \
+        --build-arg VITE_DEPLOY_CONTEXT="production" \
+        $DOCKER_BUILD_OPTS \
+        -t "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_TAG" \
+        -t "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:latest" \
+        -f "./$DOCKERFILE" "$DOCKER_BUILD_CONTEXT"
+    - docker push "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_TAG"
+    - docker push "$DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:latest"
+    - |
+      echo -e "\e[1;93mDocker image: $DOCKER_REGISTRY/$NAMESPACE/$PROJECT_NAME:$CI_COMMIT_TAG"
